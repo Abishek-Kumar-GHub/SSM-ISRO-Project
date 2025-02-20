@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Correlation Matrix</title>
+    <style>
+        /* Background: White to Cream Gradient */
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to right, #FDFDFD, #F5E6CA);
+    color: #333;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+/* Main Container */
+.container {
+    max-width: 950px;
+    margin: 40px auto;
+    padding: 25px;
+    background: rgba(217, 208, 208, 0.8);
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Heading */
+h1 {
+    font-size: 2em;
+    margin-bottom: 20px;
+    color: #5D4037; /* Warm brown */
+}
+
+/* Form Elements */
+label {
+    display: block;
+    font-size: 1.1em;
+    margin: 10px 0;
+    font-weight: bold;
+    color: #6D4C41;
+}
+
+select, button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+}
+
+/* Dropdown Styling */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.dropbtn {
+    width: 100%;
+    padding: 12px;
+    background: #F5E1C5;
+    border: 1px solid #C4A484;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 1.1em;
+    transition: background 0.3s;
+    color : black;
+}
+
+.dropbtn:hover {
+    background: #E6C49F;
+}
+
+/* Dropdown Content */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1px solid #C4A484;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 10;
+    border-radius: 6px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Show dropdown when active */
+.dropdown.active .dropdown-content {
+    display: block;
+}
+
+/* Checkbox Selection */
+.dropdown-content label {
+    display: block;
+    padding: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.dropdown-content label:hover {
+    background: #F5E1C5;
+}
+
+.dropdown-buttons {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px;
+}
+
+/* Buttons */
+button {
+    background: #FF9800;
+    color: white;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+button:hover {
+    background: #E68900;
+}
+
+.secondary-button {
+    background: #8D6E63;
+}
+
+.secondary-button:hover {
+    background: #6D4C41;
+}
+
+/* Plot Container */
+.plot-container {
+    width: 100%;
+    max-width: 900px;
+    height: auto;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+    </style>
+    {% load static %}
+    <script src="{% static 'js/plotly.min.js' %}"></script>
+    <script>
+        // Function to toggle dropdown visibility
+        function toggleDropdown() {
+            document.getElementById("dropdown").classList.toggle("active");
+        }
+
+        // Function to update column checkboxes from backend
+        async function updateColumns() {
+            const fileName = document.getElementById("file-name").value;
+            const response = await fetch(`/viz_app/columns/?file_name=${fileName}`);
+            const data = await response.json();
+
+            if (data.columns) {
+                const columnList = document.getElementById("column-list");
+                columnList.innerHTML = ""; // Clear old columns
+
+                data.columns.forEach(column => {
+                    const label = document.createElement("label");
+                    label.innerHTML = `<input type="checkbox" value="${column}"> ${column}`;
+                    columnList.appendChild(label);
+                });
+            } else {
+                alert(data.error || "Error fetching columns.");
+            }
+        }
+
+        // Function to get selected columns from checkboxes
+        function getSelectedColumns() {
+            const checkboxes = document.querySelectorAll("#column-list input:checked");
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Function to select all columns
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll("#column-list input");
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        // Function to deselect all columns
+        function deselectAllColumns() {
+            const checkboxes = document.querySelectorAll("#column-list input");
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+
+        // Function to generate correlation plot
+        async function generateCorrelation() {
+            const fileName = document.getElementById("file-name").value;
+            const selectedColumns = getSelectedColumns();
+
+            if (selectedColumns.length < 2) {
+                alert("Select at least 2 columns for correlation.");
+                return;
+            }
+
+            const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+            const plotContainer = document.getElementById("plot-container");
+            plotContainer.innerHTML = "";  // Clear old plots
+
+            const response = await fetch("/viz_app/correlation/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({ file_name: fileName, columns: selectedColumns }),
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Render Plotly   
+            Plotly.newPlot('plot-container', JSON.parse(data.plot_json).data, JSON.parse(data.plot_json).layout);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Select Correlation Options</h1>
+        <form>
+            {% csrf_token %}
+            
+            <label for="file-name">File:</label>
+            <select id="file-name" onchange="updateColumns()">
+                <option value="" disabled selected>Select a file</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Dropdown for Column Selection -->
+            <label>Select Columns (Min: 2, Max: All):</label>
+            <div class="dropdown" id="dropdown">
+                <button type="button" class="dropbtn" onclick="toggleDropdown()">Select Columns</button>
+                <div class="dropdown-content">
+                    <div class="dropdown-buttons">
+                        <button type="button" onclick="selectAllColumns()">Select All</button>
+                        <button type="button" onclick="deselectAllColumns()">Select None</button>
+                    </div>
+                    <div id="column-list">
+                        <!-- Checkboxes will be added dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" onclick="generateCorrelation()">Generate Correlation</button>
+            <button type="button" class="secondary-button" onclick="history.back()">Back</button>
+        </form>
+
+        <div class="plot-container" id="plot-container"></div>
+    </div>
+</body>
+
+</html>

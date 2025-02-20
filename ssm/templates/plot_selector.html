@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plot Selector</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        select, button { width: 100%; margin-bottom: 15px; padding: 10px; }
+        .plot-container { margin-top: 20px; text-align: center; }
+        .plot-box { width: 100%; margin-bottom: 20px; }
+    </style>
+    {% load static %}
+    <script src="{% static 'js/plotly.min.js' %}"></script>
+    <script>
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const yAxesDropdown = document.getElementById("y-axes");
+    
+            yAxesDropdown.addEventListener("change", function () {
+                let selectedOptions = Array.from(yAxesDropdown.selectedOptions);
+                
+                if (selectedOptions.length > 4) {
+                    alert("You can select a maximum of 4 Y-axes.");
+                    
+                    // Deselect the last selected option
+                    selectedOptions[selectedOptions.length - 1].selected = false;
+                }
+            });
+        });
+
+
+        async function updateColumns() {
+            const fileName = document.getElementById("file-name").value;
+            const response = await fetch(`/viz_app/columns/?file_name=${fileName}`);
+            const data = await response.json();
+
+            if (data.columns) {
+                const xAxisDropdown = document.getElementById("x-axis");
+                const yAxesDropdown = document.getElementById("y-axes");
+                xAxisDropdown.innerHTML = "";
+                yAxesDropdown.innerHTML = "";
+
+                data.columns.forEach(column => {
+                    const option = `<option value="${column}">${column}</option>`;
+                    xAxisDropdown.innerHTML += option;
+                    yAxesDropdown.innerHTML += option;
+                });
+            } else {
+                alert(data.error || "Error fetching columns.");
+            }
+        }
+
+        async function generatePlot() {
+            const fileName = document.getElementById("file-name").value;
+            const xAxis = document.getElementById("x-axis").value;
+            const yAxes = Array.from(document.querySelectorAll("#y-axes option:checked")).map(el => el.value);
+            const graphType = document.getElementById("graph-type").value;
+            const color = document.getElementById("color").value;
+
+            const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+            const plotContainer = document.getElementById("plot-container");
+            plotContainer.innerHTML = "";  // Clear old plots
+
+            for (const yAxis of yAxes) {
+                const response = await fetch("/viz_app/generate_plot/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken,
+                    },
+                    body: JSON.stringify({ file_name: fileName, x_axis: xAxis, y_axis: yAxis, graph_type: graphType, color }),
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                // Debugging Log
+                console.log("Received data:", data);
+
+                // Create a new div for each plot
+                const plotDiv = document.createElement("div");
+                plotDiv.className = "plot-box";
+                plotDiv.id = `plot-${yAxis}`; // Unique ID for each plot
+                plotContainer.appendChild(plotDiv);
+
+                // Render Plotly
+                Plotly.newPlot(plotDiv.id, JSON.parse(data.plot_json).data, JSON.parse(data.plot_json).layout);
+            }
+        }
+        
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Select Plot Options</h1>
+        <form>
+            {% csrf_token %}
+            <label for="file-name">File:</label>
+            <select id="file-name" onchange="updateColumns()">
+                <option value="" disabled selected>Select a file</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="x-axis">X-Axis:</label>
+            <select id="x-axis"></select>
+
+            <label for="y-axes">Y-Axis (Select up to 4):</label>
+            <select id="y-axes" multiple></select>
+
+            <label for="graph-type">Graph Type:</label>
+            <select id="graph-type">
+                <option value="scatter">Scatter PLot</option>
+                <option value="bar">Bar Chart</option>
+                <option value="line">Line Graph</option>
+            </select>
+
+            <label for="color">Color:</label>
+            <select id="color">
+                <option value="blue">Blue</option>
+                <option value="red">Red</option>
+                <option value="green">Green</option>
+            </select>
+
+            <button type="button" onclick="generatePlot()">Visualize</button>
+
+            <button onclick="location.href='/correlation/'">Go to Correlation</button>
+            <button onclick="location.href='/generate_fits/'">Go to FITS Creator</button>
+            <button onclick="location.href='/date_selector/'">Back</button>
+
+        </form>
+        <div class="plot-container" id="plot-container"></div>
+    </div>
+</body>
+</html>

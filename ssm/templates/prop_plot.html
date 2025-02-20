@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Prop Plot Selection</title>
+    <script>
+        let selectedColumns = {}; // Stores selected columns per file
+
+        async function fetchColumns(fileName) {
+            if (!fileName) return;
+            
+            const response = await fetch(`/viz_app/columns/?file_name=${fileName}`);
+            const data = await response.json();
+
+            if (data.columns) {
+                displayColumns(fileName, data.columns);
+            } else {
+                alert("No columns found for this file.");
+            }
+        }
+
+        function displayColumns(fileName, columns) {
+            const container = document.getElementById("columns-container");
+            let html = `<h3>${fileName}</h3>`;
+
+            columns.forEach(col => {
+                html += `
+                    <label>
+                        <input type="checkbox" value="${col}" 
+                               onchange="handleColumnSelection('${fileName}', this)">
+                        ${col}
+                    </label><br>`;
+            });
+
+            container.innerHTML += `<div id="file_${fileName}">${html}</div>`;
+        }
+
+        function handleColumnSelection(fileName, checkbox) {
+            if (!selectedColumns[fileName]) {
+                selectedColumns[fileName] = [];
+            }
+
+            if (checkbox.checked) {
+                selectedColumns[fileName].push(checkbox.value);
+            } else {
+                selectedColumns[fileName] = selectedColumns[fileName].filter(c => c !== checkbox.value);
+            }
+            updateSelectedColumns();
+        }
+
+        function updateSelectedColumns() {
+            const selectedContainer = document.getElementById("selected-columns");
+            selectedContainer.innerHTML = "<h3>Selected Columns:</h3>";
+
+            for (const file in selectedColumns) {
+                if (selectedColumns[file].length > 0) {
+                    selectedContainer.innerHTML += `<p><b>${file}</b>: ${selectedColumns[file].join(", ")}</p>`;
+                }
+            }
+        }
+
+        async function submitPlot() {
+            if (Object.keys(selectedColumns).length === 0) {
+                alert("Select at least one column.");
+                return;
+            }
+
+            let sourceIndex = document.getElementById("source-index").value;
+            sourceIndex = parseInt(sourceIndex, 10);
+
+            if (isNaN(sourceIndex) || sourceIndex < 1 || sourceIndex > 520) {
+                alert("Source Index must be a number between 1 and 520.");
+                return;
+            }
+
+            // Get CSRF token
+            const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+            const response = await fetch("/viz_app/prop_plot/", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({ 
+                    files: selectedColumns,
+                    source_index: sourceIndex 
+                })
+            });
+
+            const data = await response.json();
+            if (data.plot) {
+                document.getElementById("plot-container").innerHTML = data.plot;
+            } else {
+                alert(data.error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    <h2>Select File and Columns</h2>
+
+    <label for="file-select">Choose a file:</label>
+    <select id="file-select" onchange="fetchColumns(this.value)">
+        <option value="">-- Select a file --</option>
+        {% for file in files %}
+            <option value="{{ file }}">{{ file }}</option>
+        {% endfor %}
+    </select>
+
+    <div id="columns-container"></div>
+
+    <h3>Enter Source Index (1 - 520):</h3>
+    <input type="number" id="source-index" min="1" max="520" required>
+
+    <div id="selected-columns"></div>
+
+    <button onclick="submitPlot()">Generate Plot</button>
+
+    <div id="plot-container"></div>
+</body>
+</html>

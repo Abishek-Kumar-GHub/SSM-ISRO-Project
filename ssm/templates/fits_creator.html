@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FITS File Generator</title>
+    {% load static %}
+    <script src="{% static 'js/plotly.min.js' %}"></script>
+
+    <style>
+        /* Soft, Modern Color Theme */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #FAF3E0, #ECE9E6); /* Soft cream gradient */
+            color: #333;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #5A5A5A;
+        }
+
+        /* Form Labels */
+        label {
+            display: block;
+            font-size: 1.1em;
+            margin: 12px 0;
+            font-weight: bold;
+            color: #6D4C41; /* Warm brown */
+        }
+
+        /* Dropdown & Buttons */
+        select, button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            border-radius: 6px;
+            border: 1px solid #D3C4A4;
+            margin-bottom: 15px;
+        }
+
+        select {
+            background: #F9F9F9;
+            color: #333;
+        }
+
+        /* Buttons */
+        button {
+            background: #F4A261; /* Warm orange */
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            border: none;
+            font-weight: bold;
+            border-radius: 6px;
+        }
+
+        button:hover {
+            background: #E76F51; /* Darker orange */
+        }
+
+        .secondary-button {
+            background: #A8A8A8;
+        }
+
+        .secondary-button:hover {
+            background: #868686;
+        }
+
+        /* Checkbox Selection Box */
+        .checkbox-container {
+            background: rgba(250, 235, 215, 0.8); /* Soft cream */
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #D3C4A4;
+        }
+
+        .checkbox-container label {
+            display: block;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+
+        .checkbox-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        /* Download Link */
+        .download-link {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+
+    <script>
+        // Function to update columns from the backend
+        async function updateColumns() {
+            const fileName = document.getElementById("file-name").value;
+            const response = await fetch(`/viz_app/columns/?file_name=${fileName}`);
+            const data = await response.json();
+
+            if (data.columns) {
+                const columnList = document.getElementById("column-list");
+                columnList.innerHTML = ""; // Clear old checkboxes
+
+                data.columns.forEach(column => {
+                    const label = document.createElement("label");
+                    label.innerHTML = `<input type="checkbox" value="${column}"> ${column}`;
+                    columnList.appendChild(label);
+                });
+            } else {
+                alert(data.error || "Error fetching columns.");
+            }
+        }
+
+        // Function to get selected columns
+        function getSelectedColumns() {
+            const checkboxes = document.querySelectorAll("#column-list input:checked");
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Function to select all columns
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll("#column-list input");
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        // Function to deselect all columns
+        function deselectAllColumns() {
+            const checkboxes = document.querySelectorAll("#column-list input");
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+
+        // Function to generate FITS file
+        async function generateFITS() {
+            const fileName = document.getElementById("file-name").value;
+            const selectedColumns = getSelectedColumns();
+
+            if (selectedColumns.length === 0) {
+                alert("Please select at least one column.");
+                return;
+            }
+
+            const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+            const response = await fetch("/viz_app/generate_fits/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({ file_name: fileName, columns: selectedColumns }),
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            // Show download link
+            const downloadDiv = document.getElementById("download-link");
+            downloadDiv.innerHTML = `<a href="${data.download_url}" download>Download FITS File</a>`;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Create & Download FITS File</h1>
+        <form>
+            {% csrf_token %}
+            
+            <label for="file-name">File:</label>
+            <select id="file-name" onchange="updateColumns()">
+                <option value="" disabled selected>Select a file</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Checkboxes for Column Selection -->
+            <label>Select Columns:</label>
+            <div class="checkbox-buttons">
+                <button type="button" onclick="selectAllColumns()">Select All</button>
+                <button type="button" onclick="deselectAllColumns()">Deselect All</button>
+            </div>
+            <div class="checkbox-container" id="column-list">
+                <!-- Checkboxes will be added dynamically -->
+            </div>
+
+            <button type="button" onclick="generateFITS()">Generate FITS</button>
+        </form>
+        <div id="download-link" class="download-link"></div>
+        
+        <button type="button" class="secondary-button" onclick="history.back()">Back</button>
+    </div>
+</body>
+</html>
