@@ -11,3 +11,11 @@ The platform integrates advanced visualization techniques, user-friendly interfa
 - **Directory Management:** Organized file structures for seamless data access and analysis.
 - **Collaboration:** Enables users to share data and visualizations within the platform.
 - **Security:** Compliance with data privacy regulations.
+
+## Technology Stack
+- **Frontend:** HTML, CSS, JavaScript, Plotly.js
+- **Backend:** Django Framework
+- **Database:** SQLite (or scalable options for production environments)
+- **Modules Used:**
+- Astropy (for reading and calibrating FITS data)
+- NumPy and Pickle (for data processing and storage)
