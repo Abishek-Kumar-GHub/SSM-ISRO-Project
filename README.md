@@ -17,5 +17,5 @@ The platform integrates advanced visualization techniques, user-friendly interfa
 - **Backend:** Django Framework
 - **Database:** SQLite (or scalable options for production environments)
 - **Modules Used:**
-- Astropy (for reading and calibrating FITS data)
-- NumPy and Pickle (for data processing and storage)
+-     Astropy (for reading and calibrating FITS data)
+-     NumPy and Pickle (for data processing and storage)
