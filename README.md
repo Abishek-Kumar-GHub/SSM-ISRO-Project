@@ -76,7 +76,7 @@ The system undergoes multiple testing phases:
 - **Unit Testing:** Tests individual components like data handlers and visualization components.
 - **Integration Testing:** Ensures seamless communication between different system components.
 - **Performance Testing:** Evaluates system response and data rendering speed.
-- **Visualization Teting:** Validates the accuracy and inteactovity of light curve and spectra plots.
+- **Visualization Testing:** Validates the accuracy and inteactovity of light curve and spectra plots.
 
 - ---
 
