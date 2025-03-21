@@ -56,6 +56,7 @@
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
         }
     </style>
+<<<<<<< HEAD
 </head>
 <body>
     <div class="container">
@@ -100,6 +101,9 @@
     </div>
 </body>
 {% load static %}
+=======
+    {% load static %}
+>>>>>>> a669fa9 (SSM)
     <script src="{% static 'js/plotly.min.js' %}"></script>
     <script>
 
@@ -177,4 +181,50 @@
         }
         
     </script>
+<<<<<<< HEAD
+=======
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">Select Plot Options</h1>
+        <form>
+            {% csrf_token %}
+            <label for="file-name">File:</label>
+            <select id="file-name" onchange="updateColumns()">
+                <option value="" disabled selected>Select a file</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="x-axis">X-Axis:</label>
+            <select id="x-axis"></select>
+
+            <label for="y-axes">Y-Axis (Select up to 4):</label>
+            <select id="y-axes" multiple></select>
+
+            <label for="graph-type">Graph Type:</label>
+            <select id="graph-type">
+                <option value="scatter">Scatter Plot</option>
+                
+                <option value="line">Line Graph</option>
+            </select>
+
+            <label for="color">Color:</label>
+            <select id="color">
+                <option value="blue">Blue</option>
+                <option value="red">Red</option>
+                <option value="green">Green</option>
+            </select>
+
+            <button type="button" onclick="generatePlot()">Visualize</button>
+
+            <button type="button" onclick="window.location.href='{% url 'correlation_html' %}'">Go to Correlation</button>
+            <button type="button" onclick="window.location.href='{% url 'fits_creator' %}'">Go to FITS Creator</button>
+            <button type="button" onclick="history.back()">Back</button>
+        </form>
+        <div class="plot-container" id="plot-container"></div>
+    </div>
+</body>
+>>>>>>> a669fa9 (SSM)
 </html>

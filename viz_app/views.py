@@ -123,7 +123,11 @@ class FileView(View):
 
             if not ssm_data:
                 return render(request, "date_selector.html", {"error": "No data loaded for the given date range."})
+<<<<<<< HEAD
             i=0
+=======
+            i=1
+>>>>>>> a669fa9 (SSM)
             if i== 0:
 
                 files = list(ssm_data.keys())

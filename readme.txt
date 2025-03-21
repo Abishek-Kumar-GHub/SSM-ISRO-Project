@@ -6,7 +6,11 @@ show columns after data is proseesed
 please wait fetching data
 please wait ,reading the processing the data for the plot
 
+<<<<<<< HEAD
 
+=======
+pip install channels
+>>>>>>> a669fa9 (SSM)
 python manage.py collectstatic
 
 
@@ -77,4 +81,8 @@ class Prop_Plot(View):
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         
         
+<<<<<<< HEAD
         return
+=======
+        return
+>>>>>>> a669fa9 (SSM)
